@@ -108,14 +108,10 @@ async def mute_user(bot, mod_user, target_name, duration_minutes, reason):
         await bot.highrise.send_whisper(mod_user.id, f"{target_name} bulunamadı.")
         return
 
-    try:
-        await bot.highrise.mute_user(target_user.id)
-        # Mute bitiş zamanını main.py'deki mute süresi dictine ekle
-        bot.muted_users[target_user.id] = time.time() + duration_minutes * 60
-        await bot.highrise.send_whisper(mod_user.id, f"{target_user.username} {duration_minutes} dakika susturuldu.")
-    except Exception as e:
-        await bot.highrise.send_whisper(mod_user.id, f"Mute işlemi başarısız: {e}")
-        return
+    # Bot seviyesinde mute uygula
+    bot.muted_users[target_user.id] = time.time() + duration_minutes * 60
+    await bot.highrise.send_whisper(mod_user.id, f"{target_user.username} {duration_minutes} dakika susturuldu (bot seviyesinde).")
+    await bot.highrise.send_whisper(target_user.id, f"Mod tarafından {duration_minutes} dakika susturuldunuz. Sebep: {reason}")
 
     log_entry = {
         "mod": mod_user.username,
@@ -144,15 +140,13 @@ async def unmute_user(bot, mod_user, target_name):
         await bot.highrise.send_whisper(mod_user.id, f"{target_name} bulunamadı.")
         return
 
-    try:
-        await bot.highrise.unmute_user(target_user.id)
-        # Mute listesinden kaldır
-        if target_user.id in bot.muted_users:
-            del bot.muted_users[target_user.id]
+    # Bot seviyesinde unmute uygula
+    if target_user.id in bot.muted_users:
+        del bot.muted_users[target_user.id]
         await bot.highrise.send_whisper(mod_user.id, f"{target_user.username} susturması kaldırıldı.")
-    except Exception as e:
-        await bot.highrise.send_whisper(mod_user.id, f"Unmute işlemi başarısız: {e}")
-        return
+        await bot.highrise.send_whisper(target_user.id, "Susturmanız kaldırıldı.")
+    else:
+        await bot.highrise.send_whisper(mod_user.id, f"{target_user.username} zaten susturulmuş değil.")
 
     log_entry = {
         "mod": mod_user.username,
@@ -216,11 +210,11 @@ async def ban_user(bot, mod_user, target_name, duration_minutes=None):
         return
 
     try:
+        # Highrise API'sinde ban_user sadece user_id alır
+        await bot.highrise.ban_user(target_user.id)
         if duration_minutes:
-            await bot.highrise.ban_user(target_user.id, duration_minutes)
-            await bot.highrise.send_whisper(mod_user.id, f"{target_user.username} {duration_minutes} dakika banlandı.")
+            await bot.highrise.send_whisper(mod_user.id, f"{target_user.username} banlandı (süre: {duration_minutes} dk).")
         else:
-            await bot.highrise.ban_user(target_user.id)
             await bot.highrise.send_whisper(mod_user.id, f"{target_user.username} kalıcı banlandı.")
     except Exception as e:
         await bot.highrise.send_whisper(mod_user.id, f"Ban işlemi başarısız: {e}")

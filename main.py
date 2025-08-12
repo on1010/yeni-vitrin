@@ -123,6 +123,17 @@ class Bot(BaseBot):
         user_id = user.id
         msg_lower = message.strip().lower()
 
+        # Mute kontrolü - susturulmuş kullanıcıların mesajlarını engelle
+        if user_id in self.muted_users:
+            if time.time() < self.muted_users[user_id]:
+                # Hala susturulmuş
+                remaining_time = int((self.muted_users[user_id] - time.time()) / 60)
+                await self.highrise.send_whisper(user_id, f"Hala susturulmusunuz. Kalan süre: {remaining_time} dakika")
+                return
+            else:
+                # Mute süresi dolmuş
+                del self.muted_users[user_id]
+
         # Moderation komutlarını kontrol et
         if await handle_mod_command(self, user, message):
             return
