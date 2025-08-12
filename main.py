@@ -2,13 +2,14 @@ import asyncio
 import time
 import json
 import os
+import random
 from importlib import import_module
 from threading import Thread
 from flask import Flask
 
 from highrise import *
 from highrise.models import *
-from highrise.__main__ import main as hr_main  # highrise ana async main fonksiyonu
+from highrise.__main__ import main as hr_main, BotDefinition  # highrise ana async main fonksiyonu
 from emotes import emote_mapping, secili_emote, paid_emotes  # emote sözlükleri
 
 class Bot(BaseBot):
