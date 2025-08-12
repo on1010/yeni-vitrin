@@ -226,5 +226,32 @@ async def ban_user(bot, mod_user, target_name, duration_minutes=None):
         await bot.highrise.send_whisper(mod_user.id, f"Ban işlemi başarısız: {e}")
         return
 
-    log_entry
-    
+    log_entry = {
+        "mod": mod_user.username,
+        "target": target_user.username,
+        "action": "ban",
+        "reason": None,
+        "duration_minutes": duration_minutes,
+        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    logs = load_logs()
+    if "ban" not in logs:
+        logs["ban"] = []
+    logs["ban"].append(log_entry)
+    save_logs(logs)
+
+async def unban_user(bot, mod_user, target_name):
+    await bot.highrise.send_whisper(mod_user.id, f"Unban komutu henüz implementasyona eklenecek.")
+
+async def send_log(bot, mod_user, log_type):
+    logs = load_logs()
+    if log_type not in logs or not logs[log_type]:
+        await bot.highrise.send_whisper(mod_user.id, f"{log_type} logları boş.")
+        return
+
+    log_entries = logs[log_type][-5:]  # Son 5 kayıt
+    message = f"Son {log_type} logları:\n"
+    for entry in log_entries:
+        message += f"{entry['timestamp']} - {entry['mod']} -> {entry['target']}\n"
+
+    await bot.highrise.send_whisper(mod_user.id, message)

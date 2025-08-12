@@ -11,6 +11,7 @@ from highrise import *
 from highrise.models import *
 from highrise.__main__ import main as hr_main, BotDefinition  # highrise ana async main fonksiyonu
 from emotes import emote_mapping, secili_emote, paid_emotes  # emote sözlükleri
+from moderation import handle_mod_command
 
 class Bot(BaseBot):
     def __init__(self):
@@ -19,6 +20,9 @@ class Bot(BaseBot):
         # Kullanıcı emote döngüleri {user_id: emote_name}
         self.user_emote_loops = {}
         self.loop_task = None
+
+        # Mute sistemi
+        self.muted_users = {}
 
         # İstatistik verisi: { user_id: { 'join_time': float, 'total_time': float, 'msg_count': int, 'username': str } }
         self.user_stats = {}
@@ -118,6 +122,10 @@ class Bot(BaseBot):
     async def on_chat(self, user: User, message: str) -> None:
         user_id = user.id
         msg_lower = message.strip().lower()
+
+        # Moderation komutlarını kontrol et
+        if await handle_mod_command(self, user, message):
+            return
 
         # Kullanıcı istatistiklerini güncelle
         if user_id not in self.user_stats:
