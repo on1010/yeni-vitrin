@@ -282,12 +282,20 @@ class Bot(BaseBot):
         # Alfabetik sıraya koy
         emote_names.sort()
         
-        # Mesajı oluştur
-        message = "🎭 **Emote Listesi** 🎭\n\n"
-        message += ", ".join(emote_names)
+        # Emote isimlerini sayfalara böl (her sayfada maksimum 20 emote)
+        page_size = 20
+        pages = [emote_names[i:i + page_size] for i in range(0, len(emote_names), page_size)]
         
-        # Fısıldama ile gönder
-        await self.highrise.send_whisper(user_id, message)
+        # Her sayfayı ayrı mesaj olarak gönder
+        for i, page in enumerate(pages):
+            message = f"🎭 **Emote Listesi ({i+1}/{len(pages)})** 🎭\n\n"
+            message += ", ".join(page)
+            
+            # Fısıldama ile gönder
+            await self.highrise.send_whisper(user_id, message)
+            
+            # Sayfa arası kısa bekleme
+            await asyncio.sleep(0.5)
 
     async def send_emote(self, emote_to_send: str, user_id: str) -> None:
         await self.highrise.send_emote(emote_to_send, user_id)
