@@ -234,7 +234,7 @@ class Bot(BaseBot):
                 await self.highrise.send_whisper(user_id, "Bu komutu kullanma yetkiniz yok.")
             return
 
-        if msg_lower.startswith("!loop"):
+        if msg_lower.startswith("!dongu"):
             if await self.is_user_allowed(user):
                 parts = message.strip().split(" ", 2)
                 if len(parts) >= 3:
@@ -250,20 +250,20 @@ class Bot(BaseBot):
                         self.loop_message = loop_text
                         self.loop_message_task = asyncio.create_task(self.message_loop())
 
-                        await self.highrise.send_whisper(user_id, f"Loop başlatıldı: Her {interval} saniyede '{loop_text}' yazılacak.")
+                        await self.highrise.send_whisper(user_id, f"Döngü başlatıldı: Her {interval} saniyede '{loop_text}' yazılacak.")
                     except ValueError:
-                        await self.highrise.send_whisper(user_id, "Geçersiz saniye değeri. Örnek: !loop 10 Mesajınız")
+                        await self.highrise.send_whisper(user_id, "Geçersiz saniye değeri. Örnek: !dongu 10 Mesajınız")
                 elif len(parts) == 1:
                     # Loop'u durdur
                     if self.loop_message_task and not self.loop_message_task.done():
                         self.loop_message_task.cancel()
                         self.loop_message = ""
                         self.loop_interval = 0
-                        await self.highrise.send_whisper(user_id, "Loop durduruldu.")
+                        await self.highrise.send_whisper(user_id, "Döngü durduruldu.")
                     else:
-                        await self.highrise.send_whisper(user_id, "Aktif loop bulunamadı.")
+                        await self.highrise.send_whisper(user_id, "Aktif döngü bulunamadı.")
                 else:
-                    await self.highrise.send_whisper(user_id, "Kullanım: !loop <saniye> <mesaj> veya !loop (durdurmak için)")
+                    await self.highrise.send_whisper(user_id, "Kullanım: !dongu <saniye> <mesaj> veya !dongu (durdurmak için)")
             else:
                 await self.highrise.send_whisper(user_id, "Bu komutu kullanma yetkiniz yok.")
             return
@@ -334,20 +334,7 @@ class Bot(BaseBot):
             return
 
         # all <emote> komutu
-        if msg_lower.startswith("all "):
-            emote_name = msg_lower.replace("all ", "").strip()
-            if emote_name in emote_mapping:
-                emote_to_send = emote_mapping[emote_name]["value"]
-                room_users = (await self.highrise.get_room_users()).content
-                tasks = [self.highrise.send_emote(emote_to_send, ru[0].id) for ru in room_users]
-                try:
-                    await asyncio.gather(*tasks)
-                except Exception as e:
-                    await self.highrise.send_whisper(user.id, f"Emote gönderirken hata: {e}")
-            else:
-                await self.highrise.send_whisper(user.id, f"Geçersiz emote: {emote_name}")
-            return
-
+        
         # Dans komutu örneği
         if msg_lower.startswith("dans") or msg_lower.startswith("dance"):
             try:
@@ -382,7 +369,7 @@ class Bot(BaseBot):
         )
 
         medals = ["🥇", "🥈", "🥉"]
-        lines = ["🏆 Lider Tablosu (Dakika+Mesaj) 🏆\n"]
+        lines = ["🏆 Lider Tablosu 🏆\n"]
 
         for i, (uid, data) in enumerate(sorted_users[:5]):
             medal = medals[i] if i < 3 else f"{i+1}."
