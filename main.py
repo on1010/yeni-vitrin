@@ -425,10 +425,14 @@ class Bot(BaseBot):
             self.user_emote_loops.pop(user_id)
 
     async def message_loop(self):
-        while self.loop_message and self.loop_interval > 0:
+        while True:
             try:
+                if not self.loop_message or self.loop_interval <= 0:
+                    break
                 await self.highrise.chat(self.loop_message)
                 await asyncio.sleep(self.loop_interval)
+            except asyncio.CancelledError:
+                break
             except Exception as e:
                 print(f"Message loop hatası: {e}")
                 await asyncio.sleep(5)
