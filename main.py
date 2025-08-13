@@ -143,6 +143,10 @@ class Bot(BaseBot):
             await self.send_mytime(user_id)
             return
 
+        if msg_lower == "!emotelist":
+            await self.send_emotelist(user_id)
+            return
+
         if msg_lower.startswith("full"):
             emote_name = msg_lower.replace("full", "").strip()
             if user_id in self.user_emote_loops and self.user_emote_loops[user_id] == emote_name:
@@ -265,6 +269,24 @@ class Bot(BaseBot):
             f"Sıralama: {rank_str}"
         )
 
+        await self.highrise.send_whisper(user_id, message)
+
+    async def send_emotelist(self, user_id: str):
+        # emote_mapping'den emote isimlerini al
+        emote_names = []
+        for key in emote_mapping.keys():
+            # Sayı anahtarlarını atla, sadece isim anahtarlarını al
+            if not key.isdigit():
+                emote_names.append(key)
+        
+        # Alfabetik sıraya koy
+        emote_names.sort()
+        
+        # Mesajı oluştur
+        message = "🎭 **Emote Listesi** 🎭\n\n"
+        message += ", ".join(emote_names)
+        
+        # Fısıldama ile gönder
         await self.highrise.send_whisper(user_id, message)
 
     async def send_emote(self, emote_to_send: str, user_id: str) -> None:
