@@ -39,6 +39,9 @@ class Bot(BaseBot):
         self.loop_message_task = None
         self.loop_message = ""
         self.loop_interval = 0
+        
+        # Bot user ID
+        self.bot_user_id = None
 
     def load_stats(self):
         if os.path.isfile(self.stats_file):
@@ -89,9 +92,22 @@ class Bot(BaseBot):
 
     async def on_start(self, session_metadata: SessionMetadata) -> None:
         print("Bot başladı, odada hazır.")
-        # Örnek teleport, istersen kaldırabilirsin
-        await self.highrise.tg.create_task(self.highrise.teleport(
-            session_metadata.user_id, Position(9.0, 0.25, 0.5, "FrontRight")))
+        self.bot_user_id = session_metadata.user_id
+        
+        # Kaydedilmiş pozisyona teleport et
+        saved_position = self.settings.get("bot_position")
+        if saved_position:
+            try:
+                position = Position(
+                    saved_position["x"], 
+                    saved_position["y"], 
+                    saved_position["z"], 
+                    saved_position["facing"]
+                )
+                await self.highrise.teleport(self.bot_user_id, position)
+                print(f"Bot kaydedilmiş pozisyona teleport edildi: {saved_position}")
+            except Exception as e:
+                print(f"Teleport hatası: {e}")
 
         # Emote loop başlat
         if self.loop_task is None or self.loop_task.done():
@@ -227,6 +243,42 @@ class Bot(BaseBot):
                         await self.highrise.send_whisper(user_id, "Aktif loop bulunamadı.")
                 else:
                     await self.highrise.send_whisper(user_id, "Kullanım: !loop <saniye> <mesaj> veya !loop (durdurmak için)")
+            else:
+                await self.highrise.send_whisper(user_id, "Bu komutu kullanma yetkiniz yok.")
+            return
+
+        if msg_lower == "!bot":
+            if await self.is_user_allowed(user):
+                # Kullanıcının pozisyonunu al
+                try:
+                    room_users = (await self.highrise.get_room_users()).content
+                    user_position = None
+                    
+                    for room_user, position in room_users:
+                        if room_user.id == user_id:
+                            user_position = position
+                            break
+                    
+                    if user_position:
+                        # Botun pozisyonunu kullanıcının pozisyonuna ayarla
+                        await self.highrise.teleport(self.bot_user_id, user_position)
+                        
+                        # Pozisyonu kaydet
+                        position_data = {
+                            "x": user_position.x,
+                            "y": user_position.y, 
+                            "z": user_position.z,
+                            "facing": user_position.facing
+                        }
+                        self.settings["bot_position"] = position_data
+                        self.save_settings()
+                        
+                        await self.highrise.send_whisper(user_id, f"Bot pozisyonu ayarlandı: x={user_position.x:.1f}, y={user_position.y:.1f}, z={user_position.z:.1f}")
+                    else:
+                        await self.highrise.send_whisper(user_id, "Pozisyonunuz alınamadı.")
+                        
+                except Exception as e:
+                    await self.highrise.send_whisper(user_id, f"Bot pozisyonu ayarlanırken hata: {e}")
             else:
                 await self.highrise.send_whisper(user_id, "Bu komutu kullanma yetkiniz yok.")
             return
