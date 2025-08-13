@@ -21,7 +21,7 @@ class Bot(BaseBot):
         self.user_emote_loops = {}
         self.loop_task = None
 
-        
+
 
         # İstatistik verisi: { user_id: { 'join_time': float, 'total_time': float, 'msg_count': int, 'username': str } }
         self.user_stats = {}
@@ -39,7 +39,7 @@ class Bot(BaseBot):
         self.loop_message_task = None
         self.loop_message = ""
         self.loop_interval = 0
-        
+
         # Bot user ID
         self.bot_user_id = None
 
@@ -93,7 +93,7 @@ class Bot(BaseBot):
     async def on_start(self, session_metadata: SessionMetadata) -> None:
         print("Bot başladı, odada hazır.")
         self.bot_user_id = session_metadata.user_id
-        
+
         # Kaydedilmiş pozisyona teleport et
         saved_position = self.settings.get("bot_position")
         if saved_position:
@@ -192,9 +192,9 @@ class Bot(BaseBot):
         user_id = user.id
         msg_lower = message.strip().lower()
 
-        
 
-        
+
+
 
         # Kullanıcı istatistiklerini güncelle
         if user_id not in self.user_stats:
@@ -241,15 +241,15 @@ class Bot(BaseBot):
                     try:
                         interval = int(parts[1])
                         loop_text = parts[2]
-                        
+
                         # Önceki loop'u durdur
                         if self.loop_message_task and not self.loop_message_task.done():
                             self.loop_message_task.cancel()
-                        
+
                         self.loop_interval = interval
                         self.loop_message = loop_text
                         self.loop_message_task = asyncio.create_task(self.message_loop())
-                        
+
                         await self.highrise.send_whisper(user_id, f"Loop başlatıldı: Her {interval} saniyede '{loop_text}' yazılacak.")
                     except ValueError:
                         await self.highrise.send_whisper(user_id, "Geçersiz saniye değeri. Örnek: !loop 10 Mesajınız")
@@ -274,16 +274,16 @@ class Bot(BaseBot):
                 try:
                     room_users = (await self.highrise.get_room_users()).content
                     user_position = None
-                    
+
                     for room_user, position in room_users:
                         if room_user.id == user_id:
                             user_position = position
                             break
-                    
+
                     if user_position:
                         # Botun pozisyonunu kullanıcının pozisyonuna ayarla
                         await self.highrise.teleport(self.bot_user_id, user_position)
-                        
+
                         # Pozisyonu kaydet
                         position_data = {
                             "x": user_position.x,
@@ -293,11 +293,11 @@ class Bot(BaseBot):
                         }
                         self.settings["bot_position"] = position_data
                         self.save_settings()
-                        
+
                         await self.highrise.send_whisper(user_id, f"Bot pozisyonu ayarlandı: x={user_position.x:.1f}, y={user_position.y:.1f}, z={user_position.z:.1f}")
                     else:
                         await self.highrise.send_whisper(user_id, "Pozisyonunuz alınamadı.")
-                        
+
                 except Exception as e:
                     await self.highrise.send_whisper(user_id, f"Bot pozisyonu ayarlanırken hata: {e}")
             else:
@@ -322,7 +322,7 @@ class Bot(BaseBot):
                 await self.start_random_emote_loop(user_id)
             return
 
-        
+
 
         # Diğer emote komutları (tek seferlik)
         if msg_lower in emote_mapping:
@@ -368,11 +368,11 @@ class Bot(BaseBot):
                 data["join_time"] = now
         self.save_stats()
 
-        # Kombinasyon skoru hesapla: (dakika/10 + mesaj sayısı)
+        # Kombinasyon skoru hesapla: 1 mesaj = 10 puan, 1 dakika = 8 puan
         def calculate_score(data):
             total_minutes = data.get("total_time", 0) / 60  # saniyeyi dakikaya çevir
             msg_count = data.get("msg_count", 0)
-            return (total_minutes / 10) + msg_count
+            return (msg_count * 10) + (total_minutes * 8)
 
         # En iyi 5 kullanıcıyı kombinasyon skoruna göre sırala
         sorted_users = sorted(
@@ -415,14 +415,14 @@ class Bot(BaseBot):
 
         msg_count = stat.get("msg_count", 0)
 
-        # Kombinasyon skoru hesapla
+        # Kombinasyon skoru hesapla: 1 mesaj = 10 puan, 1 dakika = 8 puan
         def calculate_score(data):
             total_minutes = data.get("total_time", 0) / 60
             msg_count = data.get("msg_count", 0)
-            return (total_minutes / 10) + msg_count
+            return (msg_count * 10) + (total_minutes * 8)
 
         # Mevcut kullanıcının skorunu hesapla
-        user_score = (total_time / 60 / 10) + msg_count
+        user_score = (msg_count * 10) + ((total_time / 60) * 8)
 
         # Sıralamayı hesapla (yeni skor sistemine göre)
         sorted_users = sorted(
@@ -452,22 +452,22 @@ class Bot(BaseBot):
             # Sayı anahtarlarını atla, sadece isim anahtarlarını al
             if not key.isdigit():
                 emote_names.append(key)
-        
+
         # Alfabetik sıraya koy
         emote_names.sort()
-        
+
         # Emote isimlerini sayfalara böl (her sayfada maksimum 20 emote)
         page_size = 20
         pages = [emote_names[i:i + page_size] for i in range(0, len(emote_names), page_size)]
-        
+
         # Her sayfayı ayrı mesaj olarak gönder
         for i, page in enumerate(pages):
             message = f"🎭 Emote Listesi ({i+1}/{len(pages)}) 🎭\n\n"
             message += ", ".join(page)
-            
+
             # Fısıldama ile gönder
             await self.highrise.send_whisper(user_id, message)
-            
+
             # Sayfa arası kısa bekleme
             await asyncio.sleep(0.5)
 
@@ -587,4 +587,3 @@ class RunBot:
 if __name__ == "__main__":
     WebServer().keep_alive()
     RunBot().run_loop()
-    
