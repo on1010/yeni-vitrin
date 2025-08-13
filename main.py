@@ -303,7 +303,7 @@ class Bot(BaseBot):
         )
 
         medals = ["🥇", "🥈", "🥉"]
-        lines = ["🏆 **Lider Tablosu** 🏆\n"]
+        lines = ["🏆 Lider Tablosu 🏆\n"]
 
         for i, (uid, data) in enumerate(sorted_users[:5]):
             medal = medals[i] if i < 3 else f"{i+1}."
@@ -347,10 +347,10 @@ class Bot(BaseBot):
 
         time_str = f"{hours} saat {minutes} dk" if hours > 0 else f"{minutes} dk"
         message = (
-            f"İstatistiklerin:\n"
-            f"Mesaj sayısı: {msg_count}\n"
-            f"Toplam süre: {time_str}\n"
-            f"Sıralama: {rank_str}"
+            f"📊 İstatistiklerin:\n"
+            f"💬 Mesaj sayısı: {msg_count}\n"
+            f"⏱️ Toplam süre: {time_str}\n"
+            f"🏆 Sıralama: {rank_str}"
         )
 
         await self.highrise.send_whisper(user_id, message)
@@ -372,7 +372,7 @@ class Bot(BaseBot):
         
         # Her sayfayı ayrı mesaj olarak gönder
         for i, page in enumerate(pages):
-            message = f"🎭 **Emote Listesi ({i+1}/{len(pages)})** 🎭\n\n"
+            message = f"🎭 Emote Listesi ({i+1}/{len(pages)}) 🎭\n\n"
             message += ", ".join(page)
             
             # Fısıldama ile gönder
@@ -447,7 +447,7 @@ class Bot(BaseBot):
     async def is_user_allowed(self, user: User) -> bool:
         try:
             user_privileges = await self.highrise.get_room_privilege(user.id)
-            return user_privileges.moderator or user.username in ["Atknz"]
+            return user_privileges.moderator or user.username in ["Atknz", "Hernuell"]
         except Exception as e:
             print(f"Yetki kontrolü hatası: {e}")
             return user.username in ["Atknz"]
@@ -469,7 +469,7 @@ class WebServer:
         t.start()
 
 class RunBot:
-    room_id = "675f21fcecbfd6b18c0474f3"
+    room_id = "685fe9208ab075915779c70e"
     bot_token = "96ecd496bcd8e8b3e75f54c9598dee120bb1cb0e28f8e7bcba0fc9ba274679dd"
     bot_file = "main"
     bot_class = "Bot"
