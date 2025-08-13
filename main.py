@@ -441,8 +441,12 @@ class Bot(BaseBot):
         pass
 
     async def is_user_allowed(self, user: User) -> bool:
-        user_privileges = await self.highrise.get_room_privilege(user.id)
-        return user_privileges.moderator or user.username in ["Atknz", ""]
+        try:
+            user_privileges = await self.highrise.get_room_privilege(user.id)
+            return user_privileges.moderator or user.username in ["Atknz"]
+        except Exception as e:
+            print(f"Yetki kontrolü hatası: {e}")
+            return user.username in ["Atknz"]
 
 
 class WebServer:
