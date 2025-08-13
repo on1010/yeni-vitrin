@@ -109,6 +109,27 @@ class Bot(BaseBot):
             except Exception as e:
                 print(f"Teleport hatası: {e}")
 
+        # Odada mevcut olan kullanıcıları kontrol et ve join_time'ını ayarla
+        try:
+            room_users = (await self.highrise.get_room_users()).content
+            now = time.time()
+            for room_user, position in room_users:
+                user = room_user
+                if user.id not in self.user_stats:
+                    self.user_stats[user.id] = {
+                        "join_time": now,
+                        "total_time": 0,
+                        "msg_count": 0,
+                        "username": user.username
+                    }
+                else:
+                    self.user_stats[user.id]["join_time"] = now
+                    self.user_stats[user.id]["username"] = user.username
+            self.save_stats()
+            print(f"Bot başladığında {len(room_users)} kullanıcının süresi takip edilmeye başlandı.")
+        except Exception as e:
+            print(f"Mevcut kullanıcıları yüklerken hata: {e}")
+
         # Emote loop başlat
         if self.loop_task is None or self.loop_task.done():
             self.loop_task = asyncio.create_task(self.emote_loop())
@@ -347,23 +368,30 @@ class Bot(BaseBot):
                 data["join_time"] = now
         self.save_stats()
 
-        # En iyi 5 kullanıcıyı mesaj ve süreye göre sırala
+        # Kombinasyon skoru hesapla: (dakika/10 + mesaj sayısı)
+        def calculate_score(data):
+            total_minutes = data.get("total_time", 0) / 60  # saniyeyi dakikaya çevir
+            msg_count = data.get("msg_count", 0)
+            return (total_minutes / 10) + msg_count
+
+        # En iyi 5 kullanıcıyı kombinasyon skoruna göre sırala
         sorted_users = sorted(
             self.user_stats.items(),
-            key=lambda x: (x[1].get("msg_count", 0), x[1].get("total_time", 0)),
+            key=lambda x: calculate_score(x[1]),
             reverse=True
         )
 
         medals = ["🥇", "🥈", "🥉"]
-        lines = ["🏆 Lider Tablosu 🏆\n"]
+        lines = ["🏆 Lider Tablosu (Dakika+Mesaj) 🏆\n"]
 
         for i, (uid, data) in enumerate(sorted_users[:5]):
             medal = medals[i] if i < 3 else f"{i+1}."
             total_seconds = int(data.get("total_time", 0))
             hours = total_seconds // 3600
             minutes = (total_seconds % 3600) // 60
-            time_str = f"{hours} saat {minutes} dk" if hours > 0 else f"{minutes} dk"
-            lines.append(f"{medal} {data.get('username','?')} — {time_str} — {data.get('msg_count',0)} mesaj")
+            time_str = f"{hours}s {minutes}dk" if hours > 0 else f"{minutes}dk"
+            score = calculate_score(data)
+            lines.append(f"{medal} {data.get('username','?')} — {time_str} — {data.get('msg_count',0)} mesaj — Skor: {score:.1f}")
 
         leaderboard_message = "\n".join(lines)
         # Fısıldama ile gönder
@@ -387,10 +415,19 @@ class Bot(BaseBot):
 
         msg_count = stat.get("msg_count", 0)
 
-        # Sıralamayı hesapla
+        # Kombinasyon skoru hesapla
+        def calculate_score(data):
+            total_minutes = data.get("total_time", 0) / 60
+            msg_count = data.get("msg_count", 0)
+            return (total_minutes / 10) + msg_count
+
+        # Mevcut kullanıcının skorunu hesapla
+        user_score = (total_time / 60 / 10) + msg_count
+
+        # Sıralamayı hesapla (yeni skor sistemine göre)
         sorted_users = sorted(
             self.user_stats.items(),
-            key=lambda x: (x[1].get("msg_count", 0), x[1].get("total_time", 0)),
+            key=lambda x: calculate_score(x[1]),
             reverse=True
         )
 
@@ -402,6 +439,7 @@ class Bot(BaseBot):
             f"📊 İstatistiklerin:\n"
             f"💬 Mesaj sayısı: {msg_count}\n"
             f"⏱️ Toplam süre: {time_str}\n"
+            f"🎯 Kombinasyon skoru: {user_score:.1f}\n"
             f"🏆 Sıralama: {rank_str}"
         )
 
