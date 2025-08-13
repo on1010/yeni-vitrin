@@ -11,7 +11,7 @@ from highrise import *
 from highrise.models import *
 from highrise.__main__ import main as hr_main, BotDefinition  # highrise ana async main fonksiyonu
 from emotes import emote_mapping, secili_emote, paid_emotes  # emote sözlükleri
-from moderation import handle_mod_command
+
 
 class Bot(BaseBot):
     def __init__(self):
@@ -21,8 +21,7 @@ class Bot(BaseBot):
         self.user_emote_loops = {}
         self.loop_task = None
 
-        # Mute sistemi
-        self.muted_users = {}
+        
 
         # İstatistik verisi: { user_id: { 'join_time': float, 'total_time': float, 'msg_count': int, 'username': str } }
         self.user_stats = {}
@@ -123,20 +122,9 @@ class Bot(BaseBot):
         user_id = user.id
         msg_lower = message.strip().lower()
 
-        # Mute kontrolü - susturulmuş kullanıcıların mesajlarını engelle
-        if user_id in self.muted_users:
-            if time.time() < self.muted_users[user_id]:
-                # Hala susturulmuş
-                remaining_time = int((self.muted_users[user_id] - time.time()) / 60)
-                await self.highrise.send_whisper(user_id, f"Hala susturulmusunuz. Kalan süre: {remaining_time} dakika")
-                return
-            else:
-                # Mute süresi dolmuş
-                del self.muted_users[user_id]
+        
 
-        # Moderation komutlarını kontrol et
-        if await handle_mod_command(self, user, message):
-            return
+        
 
         # Kullanıcı istatistiklerini güncelle
         if user_id not in self.user_stats:
@@ -173,7 +161,7 @@ class Bot(BaseBot):
                 await self.start_random_emote_loop(user_id)
             return
 
-        # !unban @username komutu moderation modülünde olacak, burada değil.
+        
 
         # Diğer emote komutları (tek seferlik)
         if msg_lower in emote_mapping:
