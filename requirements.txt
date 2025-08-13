@@ -23,10 +23,3 @@ six==1.16.0
 typing-extensions==3.10.0.2
 Werkzeug==3.0.1
 yarl==1.9.4
-asyncio
-threading
-json
-os
-random
-importlib
-time
