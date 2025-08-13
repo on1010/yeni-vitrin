@@ -30,6 +30,16 @@ class Bot(BaseBot):
         self.stats_file = "user_stats.json"
         self.load_stats()
 
+        # Bot ayarları dosyası
+        self.settings_file = "bot_settings.json"
+        self.settings = {}
+        self.load_settings()
+
+        # Loop task için değişkenler
+        self.loop_message_task = None
+        self.loop_message = ""
+        self.loop_interval = 0
+
     def load_stats(self):
         if os.path.isfile(self.stats_file):
             try:
@@ -58,6 +68,24 @@ class Bot(BaseBot):
                 json.dump(data_to_save, f)
         except Exception as e:
             print("Stats kaydedilirken hata:", e)
+
+    def load_settings(self):
+        if os.path.isfile(self.settings_file):
+            try:
+                with open(self.settings_file, "r", encoding="utf-8") as f:
+                    self.settings = json.load(f)
+            except Exception as e:
+                print("Settings yüklenirken hata:", e)
+                self.settings = {}
+        else:
+            self.settings = {}
+
+    def save_settings(self):
+        try:
+            with open(self.settings_file, "w", encoding="utf-8") as f:
+                json.dump(self.settings, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print("Settings kaydedilirken hata:", e)
 
     async def on_start(self, session_metadata: SessionMetadata) -> None:
         print("Bot başladı, odada hazır.")
@@ -94,6 +122,11 @@ class Bot(BaseBot):
         else:
             self.user_stats[user.id]["join_time"] = now
             self.user_stats[user.id]["username"] = user.username
+
+        # Hoşgeldin mesajı gönder (eğer ayarlanmışsa)
+        welcome_message = self.settings.get("welcome_message")
+        if welcome_message:
+            await self.highrise.chat(welcome_message.replace("{username}", user.username))
 
         # Rastgele karşılama emote'u gönder
         try:
@@ -145,6 +178,57 @@ class Bot(BaseBot):
 
         if msg_lower == "!emotelist":
             await self.send_emotelist(user_id)
+            return
+
+        if msg_lower.startswith("!setwelcome"):
+            if await self.is_user_allowed(user):
+                welcome_text = message.strip()[11:].strip()  # "!setwelcome" kısmını çıkar
+                if welcome_text:
+                    self.settings["welcome_message"] = welcome_text
+                    self.save_settings()
+                    await self.highrise.send_whisper(user_id, f"Hoşgeldin mesajı ayarlandı: {welcome_text}")
+                else:
+                    # Hoşgeldin mesajını kaldır
+                    if "welcome_message" in self.settings:
+                        del self.settings["welcome_message"]
+                        self.save_settings()
+                    await self.highrise.send_whisper(user_id, "Hoşgeldin mesajı kaldırıldı.")
+            else:
+                await self.highrise.send_whisper(user_id, "Bu komutu kullanma yetkiniz yok.")
+            return
+
+        if msg_lower.startswith("!loop"):
+            if await self.is_user_allowed(user):
+                parts = message.strip().split(" ", 2)
+                if len(parts) >= 3:
+                    try:
+                        interval = int(parts[1])
+                        loop_text = parts[2]
+                        
+                        # Önceki loop'u durdur
+                        if self.loop_message_task and not self.loop_message_task.done():
+                            self.loop_message_task.cancel()
+                        
+                        self.loop_interval = interval
+                        self.loop_message = loop_text
+                        self.loop_message_task = asyncio.create_task(self.message_loop())
+                        
+                        await self.highrise.send_whisper(user_id, f"Loop başlatıldı: Her {interval} saniyede '{loop_text}' yazılacak.")
+                    except ValueError:
+                        await self.highrise.send_whisper(user_id, "Geçersiz saniye değeri. Örnek: !loop 10 Mesajınız")
+                elif len(parts) == 1:
+                    # Loop'u durdur
+                    if self.loop_message_task and not self.loop_message_task.done():
+                        self.loop_message_task.cancel()
+                        self.loop_message = ""
+                        self.loop_interval = 0
+                        await self.highrise.send_whisper(user_id, "Loop durduruldu.")
+                    else:
+                        await self.highrise.send_whisper(user_id, "Aktif loop bulunamadı.")
+                else:
+                    await self.highrise.send_whisper(user_id, "Kullanım: !loop <saniye> <mesaj> veya !loop (durdurmak için)")
+            else:
+                await self.highrise.send_whisper(user_id, "Bu komutu kullanma yetkiniz yok.")
             return
 
         if msg_lower.startswith("full"):
@@ -339,6 +423,15 @@ class Bot(BaseBot):
     async def stop_random_emote_loop(self, user_id: str):
         if user_id in self.user_emote_loops and self.user_emote_loops[user_id] == "ulti":
             self.user_emote_loops.pop(user_id)
+
+    async def message_loop(self):
+        while self.loop_message and self.loop_interval > 0:
+            try:
+                await self.highrise.chat(self.loop_message)
+                await asyncio.sleep(self.loop_interval)
+            except Exception as e:
+                print(f"Message loop hatası: {e}")
+                await asyncio.sleep(5)
 
     # Diğer boş fonksiyonlar örneğin:
     async def on_user_move(self, user: User, pos: Position) -> None:
