@@ -1,3 +1,8 @@
 {
-  "welcome_message": "Vitrin odası @{username}"
+  "bot_position": {
+    "x": 16.5,
+    "y": 0.25,
+    "z": 16.0,
+    "facing": "FrontRight"
+  }
 }

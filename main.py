@@ -247,7 +247,7 @@ class Bot(BaseBot):
                 await self.highrise.send_whisper(user_id, "Bu komutu kullanma yetkiniz yok.")
             return
 
-        if msg_lower == "!bot":
+        if msg_lower == "!bots":
             if await self.is_user_allowed(user):
                 # Kullanıcının pozisyonunu al
                 try:
